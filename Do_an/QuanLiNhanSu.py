@@ -3,6 +3,7 @@ from tkinter import ttk, messagebox, filedialog
 import csv
 import pyodbc
 from datetime import datetime
+import pandas as pd
 
 # Cấu hình kết nối SQL Server
 DATABASE_CONFIG = {
@@ -349,6 +350,17 @@ def db_Xuat_CSV_ChamCong(file_path):
         conn.close()
     except pyodbc.Error as e:
         raise Exception(f"Lỗi xuất CSV chấm công: {e}")
+    
+# Hàm xuất dữ liệu chấm công ra file Excel
+def db_Xuat_Excel_ChamCong(file_path):    
+    try:
+        conn = db_get_connection()
+        query = "SELECT MaCC, MaNV, NgayChamCong, GioVao, GioRa FROM ChamCong ORDER BY MaCC"
+        df = pd.read_sql(query, conn)
+        df.to_excel(file_path, index=False)
+        conn.close()
+    except pyodbc.Error as e:
+        raise Exception(f"Lỗi xuất Excel chấm công: {e}")
 
 ''' Tổng kết chấm công '''
 # Hàm tải dữ liệu tổng kết chấm công từ cơ sở dữ liệu
@@ -505,6 +517,17 @@ def db_Xuat_CSV_TongKetCC(file_path):
         conn.close()
     except pyodbc.Error as e:
         raise Exception(f"Lỗi xuất CSV tổng kết chấm công: {e}")
+    
+# Hàm xuất dữ liệu tổng kết chấm công ra file Excel
+def db_Xuat_Excel_TongKetCC(file_path):    
+    try:
+        conn = db_get_connection()
+        query = "SELECT MaTKCC, MaNV, KyLuong, TongNgayLam, TongGioLam, NgayTongKet FROM TongKetCC ORDER BY MaTKCC"
+        df = pd.read_sql(query, conn)
+        df.to_excel(file_path, index=False)
+        conn.close()
+    except pyodbc.Error as e:
+        raise Exception(f"Lỗi xuất Excel tổng kết chấm công: {e}")
 
 def db_TinhLai_nv_all_kyLuong(MaNV):
     """Tái tính lại tất cả các kỳ lương hiện có cho một nhân viên."""
@@ -673,6 +696,17 @@ def db_TimKiem_TinhLuong(keyword):
     except pyodbc.Error as e:
         raise Exception(f"Lỗi tìm kiếm tính lương: {e}")
 
+# Hàm xuất dữ liệu tính lương ra file Excel
+def db_Xuat_Excel_TinhLuong(file_path):    
+    try:
+        conn = db_get_connection()
+        query = "SELECT MaNV, KyLuong, LuongCoBan, HeSoLuong, PhuCap, TongLuong FROM TinhLuong ORDER BY MaNV, KyLuong"
+        df = pd.read_sql(query, conn)
+        df.to_excel(file_path, index=False)
+        conn.close()
+    except pyodbc.Error as e:
+        raise Exception(f"Lỗi xuất Excel tính lương: {e}")
+
 # Hàm xuất dữ liệu tính lương ra file CSV
 def db_Xuat_CSV_TinhLuong(file_path):    
     try:
@@ -688,6 +722,15 @@ def db_Xuat_CSV_TinhLuong(file_path):
         conn.close()
     except pyodbc.Error as e:
         raise Exception(f"Lỗi xuất CSV tính lương: {e}")
+
+# Dinh dang tien te
+def DinhDang_Tien(tien):# Hàm định dạng tiền tệ
+    try:
+        if tien is None:
+            return "0"
+        return "{:,}".format(int(tien)).replace(",", " ")
+    except Exception:
+        return tien
 
 class QLNSU_GUI:
     def __init__(self, root):
@@ -742,9 +785,13 @@ class QLNSU_GUI:
         frame = ttk.Frame(self.notebook)
         self.notebook.add(frame, text="Chức Vụ")
         
+        # Frame bảng dữ liệu
+        table_frame = ttk.LabelFrame(frame, text="Danh Sách Chức Vụ", padding=10)
+        table_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
+
         # Frame input
         input_frame = ttk.LabelFrame(frame, text="Thông Tin Chức Vụ", padding=10)
-        input_frame.pack(fill=tk.X, padx=10, pady=5)
+        input_frame.pack(fill=tk.Y, padx=10, pady=5)
         
         ttk.Label(input_frame, text="Mã CV:").grid(row=0, column=0, sticky=tk.W, padx=5, pady=5)
         self.cv_macv = ttk.Entry(input_frame, width=20)
@@ -775,9 +822,6 @@ class QLNSU_GUI:
         ttk.Button(button_frame, text="Xóa", command=self.Xoa_chucvu).pack(side=tk.LEFT, padx=5)
         ttk.Button(button_frame, text="Làm Mới", command=self.LamMoi_chucvu).pack(side=tk.LEFT, padx=5)
         
-        # Frame bảng dữ liệu
-        table_frame = ttk.LabelFrame(frame, text="Danh Sách Chức Vụ", padding=10)
-        table_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
         
         # Tạo Treeview
         self.cv_tree = ttk.Treeview(table_frame, columns=('MaCV', 'TenCV', 'LuongCoBan', 'HeSoLuong', 'PhuCap'), 
@@ -928,7 +972,7 @@ class QLNSU_GUI:
         ttk.Button(button_frame, text="Xóa", command=self.Xoa_chamcong).pack(side=tk.LEFT, padx=5)
         ttk.Button(button_frame, text="Tìm Kiếm", command=self.Tim_chamcong).pack(side=tk.LEFT, padx=5)
         ttk.Button(button_frame, text="Làm Mới", command=self.LamMoi_chamcong).pack(side=tk.LEFT, padx=5)
-        ttk.Button(button_frame, text="Xuất CSV", command=self.XuatCSV_chamcong).pack(side=tk.LEFT, padx=5)
+        ttk.Button(button_frame, text="Xuất Excel", command=self.Xuatexcel_chamcong).pack(side=tk.LEFT, padx=5)
         
         # Frame tìm kiếm
         search_frame = ttk.Frame(input_frame)
@@ -1003,7 +1047,7 @@ class QLNSU_GUI:
         ttk.Button(button_frame, text="Tính Tổng Kết", command=self.tinh_tongket).pack(side=tk.LEFT, padx=5)
         ttk.Button(button_frame, text="Tìm Kiếm", command=self.Tim_tongket).pack(side=tk.LEFT, padx=5)
         ttk.Button(button_frame, text="Làm Mới", command=self.LamMoi_tongket).pack(side=tk.LEFT, padx=5)
-        ttk.Button(button_frame, text="Xuất CSV", command=self.XuatCSV_tongket).pack(side=tk.LEFT, padx=5)
+        ttk.Button(button_frame, text="Xuất Excel", command=self.Xuatexcel_tongket).pack(side=tk.LEFT, padx=5)
         ttk.Button(button_frame, text="Xóa Tổng Kết", command=self.Xoa_tongket).pack(side=tk.LEFT, padx=5)
         ttk.Button(button_frame, text="Xóa Tất Cả Tổng Kết", command=self.Xoa_all_tongket).pack(side=tk.LEFT, padx=5)
         
@@ -1070,7 +1114,7 @@ class QLNSU_GUI:
         ttk.Button(button_frame, text="Tính Lương", command=self.tinhluong).pack(side=tk.LEFT, padx=5)
         ttk.Button(button_frame, text="Tìm Kiếm", command=self.Tim_tinhluong).pack(side=tk.LEFT, padx=5)
         ttk.Button(button_frame, text="Làm Mới", command=self.LamMoi_tinhluong).pack(side=tk.LEFT, padx=5)
-        ttk.Button(button_frame, text="Xuất CSV", command=self.XuatCSV_tinhluong).pack(side=tk.LEFT, padx=5)
+        ttk.Button(button_frame, text="Xuất Excel", command=self.Xuatexcel_tinhluong).pack(side=tk.LEFT, padx=5)
         ttk.Button(button_frame, text="Xóa Tính Lương", command=self.Xoa_tinhluong).pack(side=tk.LEFT, padx=5)
         ttk.Button(button_frame, text="Xóa Tất Cả Tính Lương", command=self.Xoa_all_tinhluong ).pack(side=tk.LEFT, padx=5)
         
@@ -1116,7 +1160,7 @@ class QLNSU_GUI:
             
             data = db_load_ChucVu()
             for item in data:
-                values = (item['MaCV'], item['TenCV'], item['LuongCoBan'], item['HeSoLuong'], item['PhuCap'])
+                values = (item['MaCV'], item['TenCV'], DinhDang_Tien(item['LuongCoBan']), item['HeSoLuong'], DinhDang_Tien(item['PhuCap']))
                 self.cv_tree.insert('', tk.END, values=values)
         except Exception as e:
             messagebox.showerror("Lỗi", str(e))
@@ -1445,6 +1489,16 @@ class QLNSU_GUI:
         except Exception as e:
             messagebox.showerror("Lỗi", str(e))
 
+    def Xuatexcel_chamcong(self):
+        try:
+            file_path = filedialog.asksaveasfilename(defaultextension=".xlsx", 
+                                                     filetypes=[("Excel files", "*.xlsx"), ("All files", "*.*")])
+            if file_path:
+                db_Xuat_Excel_ChamCong(file_path)
+                messagebox.showinfo("Thành công", f"Xuất dữ liệu thành công!\nĐường dẫn: {file_path}")
+        except Exception as e:
+            messagebox.showerror("Lỗi", str(e))
+
     def load_tongket_data(self):
         """Load dữ liệu tổng kết chấm công"""
         try:
@@ -1532,14 +1586,24 @@ class QLNSU_GUI:
         """Xóa dữ liệu tìm kiếm"""
         self.tk_search.delete(0, tk.END)
         self.load_tongket_data()
-    
+
     def XuatCSV_tongket(self):
-        """Xuất dữ liệu tổng kết ra CSV"""
+        '''Xuất dữ liệu tổng kết chấm công ra CSV'''
         try:
             file_path = filedialog.asksaveasfilename(defaultextension=".csv", 
                                                      filetypes=[("CSV files", "*.csv"), ("All files", "*.*")])
             if file_path:
                 db_Xuat_CSV_TongKetCC(file_path)
+                messagebox.showinfo("Thành công", f"Xuất dữ liệu thành công!\nĐường dẫn: {file_path}")
+        except Exception as e:
+            messagebox.showerror("Lỗi", str(e))
+    
+    def Xuatexcel_tongket(self):
+        try:
+            file_path = filedialog.asksaveasfilename(defaultextension=".xlsx", 
+                                                     filetypes=[("Excel files", "*.xlsx"), ("All files", "*.*")])
+            if file_path:
+                db_Xuat_Excel_TongKetCC(file_path)
                 messagebox.showinfo("Thành công", f"Xuất dữ liệu thành công!\nĐường dẫn: {file_path}")
         except Exception as e:
             messagebox.showerror("Lỗi", str(e))
@@ -1552,8 +1616,8 @@ class QLNSU_GUI:
             
             data = db_load_TinhLuong()
             for item in data:
-                values = (item['MaNV'], item['KyLuong'], item['LuongCoBan'], 
-                         item['HeSoLuong'], item['PhuCap'], f"{item['TongLuong']:,.0f}")
+                values = (item['MaNV'], item['KyLuong'], DinhDang_Tien(item['LuongCoBan']), 
+                         item['HeSoLuong'], DinhDang_Tien(item['PhuCap']), DinhDang_Tien(item['TongLuong']))
                 self.tl_tree.insert('', tk.END, values=values)
         except Exception as e:
             messagebox.showerror("Lỗi", str(e))
@@ -1631,14 +1695,24 @@ class QLNSU_GUI:
             self.load_tinhluong_data()
         except Exception as e:
             messagebox.showerror("Lỗi", str(e))
-    
+
     def XuatCSV_tinhluong(self):
-        """Xuất dữ liệu tính lương ra CSV"""
+        '''Xuất dữ liệu tính lương ra CSV'''
         try:
             file_path = filedialog.asksaveasfilename(defaultextension=".csv", 
                                                      filetypes=[("CSV files", "*.csv"), ("All files", "*.*")])
             if file_path:
                 db_Xuat_CSV_TinhLuong(file_path)
+                messagebox.showinfo("Thành công", f"Xuất dữ liệu thành công!\nĐường dẫn: {file_path}")
+        except Exception as e:
+            messagebox.showerror("Lỗi", str(e))
+
+    def Xuatexcel_tinhluong(self):
+        try:
+            file_path = filedialog.asksaveasfilename(defaultextension=".xlsx", 
+                                                     filetypes=[("Excel files", "*.xlsx"), ("All files", "*.*")])
+            if file_path:
+                db_Xuat_Excel_TinhLuong(file_path)
                 messagebox.showinfo("Thành công", f"Xuất dữ liệu thành công!\nĐường dẫn: {file_path}")
         except Exception as e:
             messagebox.showerror("Lỗi", str(e))
